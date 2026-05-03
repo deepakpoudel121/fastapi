@@ -33,29 +33,38 @@ def create_document(request: DocumentCreate, conn = Depends(get_db_connection)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=list[DocumentResponse])
-def get_documents(
-    author : str = Query(None),
-    content_type: str = Query(None),
-    conn = Depends(get_db_connection)):
 
-    query = "SELECT id, title ,content, author, content, word_count FROM documents WHERE deleted_at IS NULL"
+router.get("/", response_model=list[DocumentResponse])
+def get_documents(
+    author: str = Query(None),
+    content_type: str = Query(None),
+    conn=Depends(get_db_connection)
+):
+    query = """
+    SELECT id, title, content, author, content_type, word_count, created_at
+    FROM documents
+    WHERE deleted_at IS NULL
+    """
+
     params = []
     conditions = []
+
     if author:
         conditions.append("author = %s")
         params.append(author)
-        
+
     if content_type:
-        conditions.append('content_type = %s')
+        conditions.append("content_type = %s")
         params.append(content_type)
 
     if conditions:
-        query += 'AND'.join(conditions)
-    try: 
+        query += " AND " + " AND ".join(conditions)
+
+    try:
         with conn.cursor() as cur:
             cur.execute(query, tuple(params))
             rows = cur.fetchall()
+
         return [
             {
                 "id": row[0],
@@ -64,11 +73,14 @@ def get_documents(
                 "author": row[3],
                 "content_type": row[4],
                 "word_count": row[5],
+                # optionally include created_at
+                "created_at": row[6],
             }
             for row in rows
         ]
+
     except Exception as e:
-        raise HTTPException(status_code = 500, detail = str(e))
+        raise HTTPException(status_code=500, detail=str(e))
             
 
 
@@ -76,21 +88,23 @@ def get_documents(
 def get_document_by_id(id: int, conn = Depends(get_db_connection)):
     try: 
         with conn.cursor() as cur:
-            cur.execute("SELECT id, title, content, author, content_type, word_count FROM documents WHERE id = %s", (id,))
+            cur.execute("SELECT id, title, content, author, content_type, word_count created_at FROM documents WHERE id = %s", (id,))
             row= cur.fetchone()
-            if row:
-                return DocumentResponse(
-                    id= row[0],
-                    title  = row[1],
-                    content = row[2],
-                    author = row[3],
-                    content_type =row[4],
-                    word_count = row[5]
-                )
-            else:
-                raise HTTPException(status_code = 404, details = "Not Found")
     except Exception as e:
-        raise HTTPException(status_code = 500, detail = str(e))
+            raise HTTPException(status_code = 500, detail = str(e))
+    if not row:
+            raise HTTPException(status_code = 404, detail= "Not Found")
+            
+    return DocumentResponse(
+        id= row[0],
+        title  = row[1],
+        content = row[2],
+        author = row[3],
+        content_type =row[4],
+        word_count = row[5]
+    )
+       
+    
     
 
 @router.delete('/{id}')
@@ -98,6 +112,10 @@ def delete_document(id: int, conn = Depends(get_db_connection)):
     try:
         with conn.cursor() as cur:
             cur.execute('UPDATE documents SET deleted_at = NOW() WHERE id = %s', (id,))
-            conn.commit()
+            row = cur.fetchone()
     except Exception as e:
-        raise HTTPException(status_code = 500, detail = str(e))
+            raise HTTPException(status_code = 500, detail = str(e))
+    if not row:
+            raise HTTPException(status_code = 404, detail= "Not Found")
+    return {f"Message": "Document with id {id} deleted successfully"}
+    
