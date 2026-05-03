@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from fastapi import Depends
 from app.db.connection import get_db_connection
 from app.models.documents import DocumentCreate, DocumentResponse
+from app.core.logger import logger
 
 
 router = APIRouter(prefix="/documents")
@@ -31,7 +32,8 @@ def create_document(request: DocumentCreate, conn = Depends(get_db_connection)):
             created_at=result[1]
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("failed to create document", extra={"error": str(e)})
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/", response_model=list[DocumentResponse])
@@ -88,7 +90,7 @@ def get_documents(
 def get_document_by_id(id: int, conn = Depends(get_db_connection)):
     try: 
         with conn.cursor() as cur:
-            cur.execute("SELECT id, title, content, author, content_type, word_count, created_at FROM documents WHERE id = %s", (id,))
+            cur.execute("SELECT id, title, content, author, content_type, word_count, created_at FROM documents WHERE id = %s AND deleted_at IS NULL" , (id,))
             row= cur.fetchone()
     except Exception as e:
             raise HTTPException(status_code = 500, detail = str(e))
@@ -119,5 +121,5 @@ def delete_document(id: int, conn = Depends(get_db_connection)):
             raise HTTPException(status_code = 500, detail = str(e))
     if not row:
             raise HTTPException(status_code = 404, detail= "Not Found")
-    return {f"Message": "Document with id {id} deleted successfully"}
+    return {f"Message": f"Document with id {id} deleted successfully"}
     
