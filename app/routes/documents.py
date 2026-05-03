@@ -39,7 +39,7 @@ def get_documents(
     content_type: str = Query(None),
     conn = Depends(get_db_connection)):
 
-    query = "SELECT id, title ,content, author, content, word_count FROM documents"
+    query = "SELECT id, title ,content, author, content, word_count FROM documents WHERE deleted_at IS NULL"
     params = []
     conditions = []
     if author:
@@ -51,8 +51,7 @@ def get_documents(
         params.append(content_type)
 
     if conditions:
-        query += "WHERE" + 'AND'.join(conditions)
-        query = query + "WHERE content_type = %s", (content_type)
+        query += 'AND'.join(conditions)
     try: 
         with conn.cursor() as cur:
             cur.execute(query, tuple(params))
@@ -69,7 +68,7 @@ def get_documents(
             for row in rows
         ]
     except Exception as e:
-        raise HTTPException(status_code = 500, details = str(e))
+        raise HTTPException(status_code = 500, detail = str(e))
             
 
 
@@ -79,16 +78,19 @@ def get_document_by_id(id: int, conn = Depends(get_db_connection)):
         with conn.cursor() as cur:
             cur.execute("SELECT id, title, content, author, content_type, word_count FROM documents WHERE id = %s", (id,))
             row= cur.fetchone()
-            return DocumentResponse(
-                id= row[0],
-                title  = row[1],
-                content = row[2],
-                author = row[3],
-                content_type =row[4],
-                word_count = row[5]
-            )
+            if row:
+                return DocumentResponse(
+                    id= row[0],
+                    title  = row[1],
+                    content = row[2],
+                    author = row[3],
+                    content_type =row[4],
+                    word_count = row[5]
+                )
+            else:
+                raise HTTPException(status_code = 404, details = "Not Found")
     except Exception as e:
-        raise HTTPException(status_code = 404, details = "Not Found")
+        raise HTTPException(status_code = 500, detail = str(e))
     
 
 @router.delete('/{id}')
@@ -96,6 +98,6 @@ def delete_document(id: int, conn = Depends(get_db_connection)):
     try:
         with conn.cursor() as cur:
             cur.execute('UPDATE documents SET deleted_at = NOW() WHERE id = %s', (id,))
-            cur.commit()
+            conn.commit()
     except Exception as e:
-        raise HTTPException(status_code = 500, details = str(e))
+        raise HTTPException(status_code = 500, detail = str(e))

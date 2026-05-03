@@ -4,6 +4,7 @@ from fastapi import Depends
 from app.db.connection import get_db_connection 
 from app.models import DocumentCreate
 from app.core import logger
+from starlette.requests import Request
 import time
 
 app = FastAPI()
@@ -11,7 +12,7 @@ app = FastAPI()
 app.include_router(documents_router)
 
 @app.middleware('http')
-async def log_requests(request: DocumentCreate, call_next):
+async def log_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     latency_ms = round((time.time() - start_time) * 1000, 2)
