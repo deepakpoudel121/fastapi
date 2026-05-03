@@ -11,12 +11,6 @@ class DocumentCreate(BaseModel):
 
 class DocumentResponse(DocumentCreate):
     id: int
-    title: str
-    author: str
-    content_type: str
-    content: str
-    word_count: int
-    created_at: datetime
     deleted_at: datetime | None = None
 
 

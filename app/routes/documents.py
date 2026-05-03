@@ -34,7 +34,7 @@ def create_document(request: DocumentCreate, conn = Depends(get_db_connection)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-router.get("/", response_model=list[DocumentResponse])
+@router.get("/", response_model=list[DocumentResponse])
 def get_documents(
     author: str = Query(None),
     content_type: str = Query(None),
@@ -88,7 +88,7 @@ def get_documents(
 def get_document_by_id(id: int, conn = Depends(get_db_connection)):
     try: 
         with conn.cursor() as cur:
-            cur.execute("SELECT id, title, content, author, content_type, word_count created_at FROM documents WHERE id = %s", (id,))
+            cur.execute("SELECT id, title, content, author, content_type, word_count, created_at FROM documents WHERE id = %s", (id,))
             row= cur.fetchone()
     except Exception as e:
             raise HTTPException(status_code = 500, detail = str(e))
@@ -101,7 +101,8 @@ def get_document_by_id(id: int, conn = Depends(get_db_connection)):
         content = row[2],
         author = row[3],
         content_type =row[4],
-        word_count = row[5]
+        word_count = row[5],
+        created_at = row[6]
     )
        
     
@@ -111,8 +112,9 @@ def get_document_by_id(id: int, conn = Depends(get_db_connection)):
 def delete_document(id: int, conn = Depends(get_db_connection)):
     try:
         with conn.cursor() as cur:
-            cur.execute('UPDATE documents SET deleted_at = NOW() WHERE id = %s', (id,))
+            cur.execute('UPDATE documents SET deleted_at = NOW() WHERE id = %s AND deleted_at IS NULL RETURNING id', (id,))
             row = cur.fetchone()
+            conn.commit()
     except Exception as e:
             raise HTTPException(status_code = 500, detail = str(e))
     if not row:
