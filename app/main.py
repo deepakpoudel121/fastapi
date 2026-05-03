@@ -2,7 +2,7 @@ from app.routes import documents_router
 from fastapi import FastAPI
 from fastapi import Depends
 from app.db.connection import get_db_connection 
-from models import DocumentRequest
+from app.models import DocumentCreate
 from app.core import logger
 import time
 
@@ -11,7 +11,7 @@ app = FastAPI()
 app.include_router(documents_router)
 
 @app.middleware('http')
-def log_requests(request: DocumentRequest, call_next):
+def log_requests(request: DocumentCreate, call_next):
     start_time = time.time()
     response = call_next(request)
     latency_ms = round((time.time() - start_time) * 1000, 2)
