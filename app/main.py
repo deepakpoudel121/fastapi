@@ -11,9 +11,9 @@ app = FastAPI()
 app.include_router(documents_router)
 
 @app.middleware('http')
-def log_requests(request: DocumentCreate, call_next):
+async def log_requests(request: DocumentCreate, call_next):
     start_time = time.time()
-    response = call_next(request)
+    response = await call_next(request)
     latency_ms = round((time.time() - start_time) * 1000, 2)
     logger.info(
         'request',

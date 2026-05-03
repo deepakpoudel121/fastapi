@@ -75,69 +75,27 @@ def get_documents(
 
 @router.get('/{id}', response_model = DocumentResponse)
 def get_document_by_id(id: int, conn = Depends(get_db_connection)):
-    with conn.cursor() as cur:
-        cur.execute("SELECT id, title, content, author, content_type, word_count FROM documents WHERE id = %s", (id,))
-        result= cur.fetchone()
-        return DocumentResponse(
-            id=id,
-            title=result.title,
-            author=result.author,
-            content_type=result.content_type,
-            content=result.content,
-            word_count=result.word_count,
-            created_at=result[1]
-        )
+    try: 
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, title, content, author, content_type, word_count FROM documents WHERE id = %s", (id,))
+            row= cur.fetchone()
+            return DocumentResponse(
+                id= row[0],
+                title  = row[1],
+                content = row[2],
+                author = row[3],
+                content_type =row[4],
+                word_count = row[5]
+            )
+    except Exception as e:
+        raise HTTPException(status_code = 404, details = "Not Found")
+    
 
-
-# @router.post("/")
-# def create_document(request: Document, conn = Depends(get_db_connection)): 
-#     try:
-#         with conn.cursor() as cur:
-#             cur.execute(
-#             "INSERT INTO documents (title, content, author, content_type, word_count) VALUES (%s, %s, %s, %s, %s)",
-#             (request.title, request.content, request.author, request.content_type, request.word_count)
-#             )
-#             conn.commit()
-#         return {"message": "Document created"}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-# @router.get("/")
-# def get_documents(conn = Depends(get_db_connection)): 
-#     try:
-#         with conn.cursor() as cur:
-#             cur.execute("SELECT id, title, content, author, content_type, word_count FROM documents")
-#             rows = cur.fetchall()
-#             documents = [Document(id=row[0], title=row[1], content=row[2], author=row[3], content_type=row[4], word_count=row[5]) for row in rows]   
-        
-#         return documents
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-# @router.get("/{id}")
-
-# def get_document(id: int, conn = Depends(get_db_connection)):   
-#     try: 
-#         with conn.cursor() as cur:
-#             cur.execute("SELECT id, title, content, author, content_type, word_count FROM documents WHERE id = %s", (id,))
-#             row = cur.fetchone()
-#             if row:
-#                 document = Document(id=row[0], title=row[1], content=row[2], author=row[3], content_type=row[4], word_count=row[5])    
-#                 return document
-#             else:
-#                 raise HTTPException(status_code=404, detail="Document not found")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete("/{id}")
+@router.delete('/{id}')
 def delete_document(id: int, conn = Depends(get_db_connection)):
     try:
         with conn.cursor() as cur:
-            cur.execute("UPDATE documents SET deleted_at = %d WHERE id = %s", (id, datetime.utcnow))
-            conn.commit()    
-        
-        return {"message": f"Document {id} deleted"}
+            cur.execute('UPDATE documents SET deleted_at = NOW() WHERE id = %s', (id,))
+            cur.commit()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+        raise HTTPException(status_code = 500, details = str(e))
