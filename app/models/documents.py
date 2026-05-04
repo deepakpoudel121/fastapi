@@ -11,6 +11,7 @@ class DocumentCreate(BaseModel):
 
 class DocumentResponse(DocumentCreate):
     id: int
+    created_at: datetime
     deleted_at: datetime | None = None
 
 

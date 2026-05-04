@@ -1,4 +1,4 @@
-from app.routes import documents_router
+from app.routes import documents_router, analyser
 from fastapi import FastAPI
 from fastapi import Depends
 from app.db.connection import get_db_connection 
@@ -10,6 +10,7 @@ import time
 app = FastAPI()
 
 app.include_router(documents_router)
+app.include_router(analyser)
 
 @app.middleware('http')
 async def log_requests(request: Request, call_next):
