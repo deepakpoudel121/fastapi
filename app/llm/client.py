@@ -5,6 +5,7 @@ from .schemas import StructuredOutput
 from fastapi import HTTPException
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
 load_dotenv()
 
 
@@ -13,6 +14,8 @@ def get_llm_chain(provider: str):
     prompt = ChatPromptTemplate.from_template(raw_prompt)
     if provider.lower() == "mistral":
         llm = ChatMistralAI(model="mistral-small-latest")
+    elif provider.lower() == 'groq':
+        llm = ChatGroq(model="llama-3.1-8b-instant")
        
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")

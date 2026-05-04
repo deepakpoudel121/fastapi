@@ -6,7 +6,22 @@ from app.core import logger
 from rich import print
 router = APIRouter(prefix='/analyse')
 
-@router.get('/', response_model=LLMResponse)
+
+def get_chain_with_fallback(primary:str):
+    fallback_order = {
+        'mistral': ['mistral', 'groq'],
+        'groq': ['groq', 'mistral']
+    }
+    providers = fallback_order.get(primary, ['mistral', 'groq'])
+    for provider in providers:
+        try:
+            return get_llm_chain(provider), provider
+        except Exception as e:
+            last_error = e
+            continue
+    raise last_error
+
+@router.post('/', response_model=LLMResponse)
 def analyse_document(
     db=Depends(get_db_connection),
     provider: str = Query(default="mistral"),
@@ -25,7 +40,7 @@ def analyse_document(
     # 2. Call LLM with latency tracking
     try:
         start = time.time()
-        chain = get_llm_chain(provider)
+        chain, model_used= get_chain_with_fallback(provider)
         print(chain)
         response = chain.invoke({"document": row[0]})
         print(response)
@@ -41,7 +56,7 @@ def analyse_document(
         key_topics=response.key_topics,
         sentiment=response.sentiment,
         suggested_tags=response.suggested_tags,
-        model_used=provider,
+        model_used=model_used,
         latency_ms=latency_ms,
         cost_usd=0.0
     )
